@@ -1,0 +1,55 @@
+---
+
+- name: Ensure vm.max_map_count is set correctly
+  lineinfile:
+    path: /etc/sysctl.conf
+    regexp: '^vm\.max_map_count'
+    line: vm.max_map_count=262144
+  notify: Apply max_map_count
+
+- name: Create directories if not exist
+  file:
+    path: '{{ item }}'
+    state: directory
+    mode: '0775'
+  with_items:
+    - /data/elasticsearch/data
+    - /data/elasticsearch/config/certs
+
+- name: Copy config files
+  copy:
+    src: '{{ item.src }}'
+    dest: '{{ item.dest }}'
+  with_items:
+    - src: ../../files/certs/
+      dest: /data/elasticsearch/config/certs
+    - src: ./files/config/
+      dest: /data/elasticsearch/config
+
+- name: Configure elastic
+  template:
+    src: elasticsearch.yml.j2
+    dest: /data/elasticsearch/config/elasticsearch.yml
+
+- name: Run elasticsearch container
+  docker_container:
+    name: '{{ elasticsearch_service_name }}'
+    image: '{{ elasticsearch_image_name }}'
+    state: started
+    recreate: true
+    restart_policy: always
+    ports:
+      - '9200:9200'
+      - '9300:9300'
+    volumes:
+      - /data/elasticsearch/data:/usr/share/elasticsearch/data:z
+      - /data/elasticsearch/config:/usr/share/elasticsearch/config:z
+    env:
+      'ELASTIC_PASSWORD={{ elastic_password }}'
+
+- name: Make sure elasticsearch is running
+  wait_for:
+    host: 0.0.0.0
+    port: 9200
+    #delay: 20
+    timeout: 120

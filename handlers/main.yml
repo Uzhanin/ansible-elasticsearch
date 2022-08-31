@@ -1,0 +1,3 @@
+---
+- name: Apply max_map_count
+  command: sysctl -w vm.max_map_count=262144

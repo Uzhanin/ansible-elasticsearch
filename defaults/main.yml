@@ -1,0 +1,4 @@
+---
+elasticsearch_service_name: elasticsearch
+elasticsearch_image_name: elasticsearch:8.3.3
+elasticsearch_cluster_name: docker-cluster
